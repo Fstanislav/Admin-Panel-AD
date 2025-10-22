@@ -19,6 +19,7 @@ require_once __DIR__ . '/includes/auth.php';
     <div class="brand">AD Control Panel</div>
     <nav>
       <a class="link" href="/ad-panel/users.php">Список пользователей</a>
+      <a class="link" href="/ad-panel/settings.php">Настройки</a>
       <a class="link" href="/ad-panel/logout.php">Выход</a>
     </nav>
   </header>

@@ -30,6 +30,7 @@ $csrf = csrf_token();
     <div class="brand">AD Control Panel</div>
     <nav>
       <a class="link" href="/ad-panel/dashboard.php">Дашборд</a>
+      <a class="link" href="/ad-panel/settings.php">Настройки</a>
       <a class="link" href="/ad-panel/logout.php">Выход</a>
     </nav>
   </header>

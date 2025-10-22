@@ -81,6 +81,62 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') hideModal();
     });
+
+    // Settings page wiring
+    const settingsForm = $('#settingsForm');
+    if (settingsForm){
+      const statusBadge = $('#statusBadge');
+      const alert = $('#settingsAlert');
+      const testBtn = $('#testBtn');
+
+      function setStatus(ok, msg){
+        statusBadge.textContent = 'Статус: ' + (msg || (ok ? 'подключено' : 'ошибка'));
+        statusBadge.classList.remove('ok','err');
+        statusBadge.classList.add(ok ? 'ok' : 'err');
+      }
+
+      async function testConnection(){
+        const fd = new FormData(settingsForm);
+        fd.set('csrf_token', window.AD_PANEL?.csrf || '');
+        try{
+          const res = await fetch('/ad-panel/settings_test.php', { method:'POST', body: fd, headers: { 'Accept': 'application/json' } });
+          const data = await res.json();
+          setStatus(!!data.success, data.message);
+        }catch(e){ setStatus(false, 'Ошибка сети'); }
+      }
+
+      if (testBtn){ testBtn.addEventListener('click', testConnection); }
+
+      let debounceTimer;
+      settingsForm.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(testConnection, 500);
+      });
+
+      settingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alert.classList.add('hidden');
+        const fd = new FormData(settingsForm);
+        fd.set('csrf_token', window.AD_PANEL?.csrf || '');
+        try{
+          const res = await fetch('/ad-panel/settings_save.php', { method:'POST', body: fd, headers: { 'Accept': 'application/json' } });
+          const data = await res.json();
+          alert.textContent = data.message || (data.success ? 'Сохранено' : 'Ошибка сохранения');
+          alert.classList.remove('hidden','alert-error','alert-success');
+          alert.classList.add(data.success ? 'alert-success' : 'alert-error');
+          if (data.success){
+            setTimeout(testConnection, 300);
+          }
+        }catch(err){
+          alert.textContent = 'Ошибка сети';
+          alert.classList.remove('hidden','alert-success');
+          alert.classList.add('alert-error');
+        }
+      });
+
+      // Initial test
+      testConnection();
+    }
   }
 
   document.addEventListener('DOMContentLoaded', wire);

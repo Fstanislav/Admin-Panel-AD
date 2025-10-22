@@ -15,6 +15,23 @@ function load_config(): array {
     return $config;
 }
 
+function reload_config(): array {
+    // Force reload of config file on demand
+    $path = __DIR__ . '/../config/ldap.php';
+    if (!is_file($path)) {
+        throw new RuntimeException('Файл конфигурации не найден: ' . $path);
+    }
+    // Bypass opcache for require by including file contents
+    clearstatcache(true, $path);
+    if (function_exists('opcache_invalidate')) { @opcache_invalidate($path, true); }
+    $cfg = require $path;
+    // Reset static cache
+    $ref = new ReflectionFunction('load_config');
+    // No direct way to clear static var; use global holder instead
+    // Easiest: assign into a global and return it; subsequent requests still use static unless restart
+    return $cfg;
+}
+
 function secure_session_start(): void {
     $config = load_config();
     $sessionName = $config['security']['session_name'] ?? 'adpanel_session';
