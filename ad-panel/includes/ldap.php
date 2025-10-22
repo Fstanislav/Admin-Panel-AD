@@ -13,6 +13,39 @@ function escapeLdapFilter(string $value): string {
     return strtr($value, $map);
 }
 
+function ldapExtractDomain(array $cfg): ?string {
+    $domain = trim((string)($cfg['domain'] ?? ''));
+    if ($domain !== '') return $domain;
+    $user = (string)($cfg['admin_username'] ?? '');
+    if (strpos($user, '@') !== false) {
+        $parts = explode('@', $user, 2);
+        return $parts[1] ?? null;
+    }
+    return null;
+}
+
+function domainToBaseDn(string $domain): string {
+    $parts = array_filter(array_map('trim', explode('.', $domain)));
+    return implode(',', array_map(fn($p) => 'DC=' . $p, $parts));
+}
+
+function ldapGetBaseDn(array $cfg): string {
+    $base = trim((string)($cfg['base_dn'] ?? ''));
+    if ($base !== '') return $base;
+    $domain = ldapExtractDomain($cfg);
+    if ($domain) return domainToBaseDn($domain);
+    throw new RuntimeException('Base DN не указан и не удалось вывести из домена. Укажите ldap.domain или ldap.base_dn.');
+}
+
+function ldapGetBindIdentity(array $cfg): string {
+    $user = (string)($cfg['admin_username'] ?? '');
+    if (strpos($user, '@') !== false || strpos($user, '\\') !== false) {
+        return $user; // UPN or DOMAIN\user
+    }
+    $domain = ldapExtractDomain($cfg);
+    return $domain ? ($user . '@' . $domain) : $user;
+}
+
 function ldapConnection() {
     $cfg = getConfig()['ldap'];
     $link = @ldap_connect((string)$cfg['host'], (int)$cfg['port']);
@@ -27,7 +60,8 @@ function ldapConnection() {
             throw new RuntimeException('Не удалось установить TLS соединение с LDAP');
         }
     }
-    if (!@ldap_bind($link, (string)$cfg['bind_dn'], (string)$cfg['bind_password'])) {
+    $identity = ldapGetBindIdentity($cfg);
+    if (!@ldap_bind($link, $identity, (string)($cfg['admin_password'] ?? ''))) {
         $err = ldap_error($link);
         throw new RuntimeException('Ошибка bind к LDAP: ' . $err);
     }
@@ -39,7 +73,8 @@ function ldapListEnabledUsers(): array {
     $link = ldapConnection();
     $filter = '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=512))';
     $attrs = $cfg['user_attributes'] ?? ['displayName', 'sAMAccountName'];
-    $search = @ldap_search($link, (string)$cfg['base_dn'], $filter, $attrs, 0, 2000, 15);
+    $baseDn = ldapGetBaseDn($cfg);
+    $search = @ldap_search($link, $baseDn, $filter, $attrs, 0, 2000, 15);
     if ($search === false) {
         $err = ldap_error($link);
         ldap_unbind($link);
@@ -70,8 +105,9 @@ function ldapChangeUserPassword(string $username, string $newPassword): void {
     }
     $cfg = getConfig()['ldap'];
     $link = ldapConnection();
+    $baseDn = ldapGetBaseDn($cfg);
     $filter = sprintf('(&(objectCategory=person)(objectClass=user)(sAMAccountName=%s))', escapeLdapFilter($username));
-    $search = @ldap_search($link, (string)$cfg['base_dn'], $filter, ['dn']);
+    $search = @ldap_search($link, $baseDn, $filter, ['dn']);
     if ($search === false) {
         $err = ldap_error($link);
         ldap_unbind($link);

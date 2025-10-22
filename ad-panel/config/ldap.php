@@ -3,7 +3,7 @@
 // Fill these values for your environment.
 return [
     'admin' => [
-        // Change this login if needed
+        // Web-panel local admin login (not AD)
         'username' => 'admin',
         // bcrypt hash for default password 'admin' — REPLACE in production
         'password_hash' => password_hash('admin', PASSWORD_BCRYPT),
@@ -14,16 +14,29 @@ return [
         'allowed_origin' => '',
     ],
     'ldap' => [
-        'host' => 'ldap://ad.example.local',
+        // Address of your DC or load balancer. Use ldap:// or ldaps://
+        'host' => 'ldap://dc01.example.local',
         'port' => 389,
-        'base_dn' => 'DC=example,DC=local',
-        'bind_dn' => 'CN=svc-ad,OU=Service Accounts,DC=example,DC=local',
-        'bind_password' => 'CHANGE_ME',
+
+        // (Simplified) Provide AD admin login and password only.
+        // Prefer UPN format for username: administrator@example.local
+        // DOMAIN\\user is also supported. If neither contains a domain, and 'domain'
+        // is set below, UPN will be constructed automatically.
+        'admin_username' => 'administrator@example.local',
+        'admin_password' => 'CHANGE_ME',
+
+        // Optional: your AD domain. Used to auto-derive Base DN when not provided,
+        // or to build UPN if username lacks domain.
+        'domain' => 'example.local',
+
+        // Optional override: Base DN. If empty, will be derived from 'domain'.
+        'base_dn' => '',
+
         'user_attributes' => ['displayName', 'sAMAccountName', 'userAccountControl'],
         'use_tls' => false,
-        'follow_referrals' => false
+        'follow_referrals' => false,
     ],
     'logging' => [
-        'file' => __DIR__ . '/../logs/actions.log'
-    ]
+        'file' => __DIR__ . '/../logs/actions.log',
+    ],
 ];
