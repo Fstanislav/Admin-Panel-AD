@@ -8,11 +8,6 @@ requireAuth();
 
 $input = file_get_contents('php://input');
 $data = json_decode($input, true) ?: [];
-if (!csrfCheck($data['csrf'] ?? '')) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Неверный CSRF-токен'], JSON_UNESCAPED_UNICODE);
-    exit;
-}
 $username = sanitizeUsername((string)($data['username'] ?? ''));
 $password = (string)($data['password'] ?? '');
 $errors = validatePassword($password);

@@ -15,19 +15,20 @@ return [
     ],
     'ldap' => [
         // Address of your DC or load balancer. Use ldap:// or ldaps://
-        'host' => 'ldap://dc01.example.local',
+        'host' => 'ldap://90.156.198.61',
         'port' => 389,
 
         // (Simplified) Provide AD admin login and password only.
         // Prefer UPN format for username: administrator@example.local
         // DOMAIN\\user is also supported. If neither contains a domain, and 'domain'
         // is set below, UPN will be constructed automatically.
-        'admin_username' => 'administrator@example.local',
-        'admin_password' => 'CHANGE_ME',
+        'admin_username' => 'saphirstas',
+        'admin_password' => '111',
 
         // Optional: your AD domain. Used to auto-derive Base DN when not provided,
         // or to build UPN if username lacks domain.
-        'domain' => 'example.local',
+        // If username lacks domain, you can set domain here, e.g. example.local
+        'domain' => '',
 
         // Optional override: Base DN. If empty, will be derived from 'domain'.
         'base_dn' => '',

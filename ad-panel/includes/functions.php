@@ -40,22 +40,7 @@ function isPost(): bool {
     return ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
 }
 
-function csrfToken(): string {
-    startSecureSession();
-    $cfg = getConfig();
-    $key = $cfg['security']['csrf_token_key'] ?? 'csrf';
-    if (empty($_SESSION[$key])) {
-        $_SESSION[$key] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION[$key];
-}
-
-function csrfCheck(string $token): bool {
-    startSecureSession();
-    $cfg = getConfig();
-    $key = $cfg['security']['csrf_token_key'] ?? 'csrf';
-    return isset($_SESSION[$key]) && hash_equals($_SESSION[$key], $token);
-}
+// CSRF helpers removed per simplified mode request
 
 function getClientIp(): string {
     $candidates = [

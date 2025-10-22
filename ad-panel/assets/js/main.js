@@ -29,7 +29,6 @@
       if (password !== password2) { msg.textContent='Пароли не совпадают'; msg.classList.add('error'); return; }
       if (password.length < 8 || !/[A-Za-zА-Яа-я]/u.test(password) || !/\d/.test(password)) { msg.textContent='Пароль не соответствует требованиям'; msg.classList.add('error'); return; }
       const payload = {
-        csrf: fd.get('csrf'),
         username: fd.get('username'),
         password
       };

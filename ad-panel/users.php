@@ -12,7 +12,6 @@ try {
 } catch (Throwable $e) {
     $error = 'Ошибка загрузки пользователей: ' . e($e->getMessage());
 }
-$csrf = csrfToken();
 ?>
 <!doctype html>
 <html lang="ru">
@@ -73,7 +72,6 @@ $csrf = csrfToken();
     <div class="modal-content">
       <h2 id="modal-title" class="text-lg mb-2">Сменить пароль</h2>
       <form id="password-form" class="space-y-3">
-        <input type="hidden" name="csrf" value="<?php echo e($csrf); ?>">
         <input type="hidden" name="username" id="username">
         <label class="field">
           <span>Новый пароль</span>
@@ -94,7 +92,7 @@ $csrf = csrfToken();
 
   <script src="/ad-panel/assets/js/main.js"></script>
   <script>
-    window.__CSRF__ = '<?php echo e($csrf); ?>';
+    // No CSRF in simplified mode
   </script>
 </body>
 </html>

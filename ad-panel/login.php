@@ -5,27 +5,22 @@ startSecureSession();
 
 $errors = [];
 if (isPost()) {
-    if (!csrfCheck($_POST['csrf'] ?? '')) {
-        $errors[] = 'Неверный CSRF-токен';
+    $username = trim((string)($_POST['username'] ?? ''));
+    $password = (string)($_POST['password'] ?? '');
+    if ($username === '' || $password === '') {
+        $errors[] = 'Введите логин и пароль';
     } else {
-        $username = trim((string)($_POST['username'] ?? ''));
-        $password = (string)($_POST['password'] ?? '');
-        if ($username === '' || $password === '') {
-            $errors[] = 'Введите логин и пароль';
+        if (authAttempt($username, $password)) {
+            logAction('login', 'success', $username, getClientIp());
+            header('Location: /ad-panel/dashboard.php');
+            exit;
         } else {
-            if (authAttempt($username, $password)) {
-                logAction('login', 'success', $username, getClientIp());
-                header('Location: /ad-panel/dashboard.php');
-                exit;
-            } else {
-                usleep(random_int(800000, 2000000));
-                $errors[] = 'Неверный логин или пароль';
-                logAction('login', 'failure', $username, getClientIp());
-            }
+            usleep(random_int(800000, 2000000));
+            $errors[] = 'Неверный логин или пароль';
+            logAction('login', 'failure', $username, getClientIp());
         }
     }
 }
-$csrf = csrfToken();
 ?>
 <!doctype html>
 <html lang="ru">
@@ -48,7 +43,6 @@ $csrf = csrfToken();
       <div class="alert alert-error"><?php echo e(implode('<br>', $errors)); ?></div>
     <?php endif; ?>
     <form method="post" class="space-y-4">
-      <input type="hidden" name="csrf" value="<?php echo e($csrf); ?>">
       <label class="field">
         <span>Логин</span>
         <input type="text" name="username" autocomplete="username" required>
