@@ -29,12 +29,33 @@ function domainToBaseDn(string $domain): string {
     return implode(',', array_map(fn($p) => 'DC=' . $p, $parts));
 }
 
-function ldapGetBaseDn(array $cfg): string {
+function ldapDiscoverBaseDn($link): ?string {
+    // Try RootDSE defaultNamingContext first, then namingContexts
+    $sr = @ldap_read($link, '', '(objectClass=*)', ['defaultNamingContext','namingContexts'], 0, 5, 5);
+    if ($sr === false) return null;
+    $info = @ldap_get_entries($link, $sr);
+    if (is_array($info) && !empty($info['count'])) {
+        $root = $info[0] ?? [];
+        if (!empty($root['defaultnamingcontext'][0])) {
+            return (string)$root['defaultnamingcontext'][0];
+        }
+        if (!empty($root['namingcontexts']) && !empty($root['namingcontexts'][0])) {
+            return (string)$root['namingcontexts'][0];
+        }
+    }
+    return null;
+}
+
+function ldapGetBaseDn(array $cfg, $link = null): string {
     $base = trim((string)($cfg['base_dn'] ?? ''));
     if ($base !== '') return $base;
+    if ($link) {
+        $discovered = ldapDiscoverBaseDn($link);
+        if ($discovered) return $discovered;
+    }
     $domain = ldapExtractDomain($cfg);
     if ($domain) return domainToBaseDn($domain);
-    throw new RuntimeException('Base DN не указан и не удалось вывести из домена. Укажите ldap.domain или ldap.base_dn.');
+    throw new RuntimeException('Base DN не указан и не удалось определить автоматически. Укажите ldap.domain или ldap.base_dn.');
 }
 
 function ldapGetBindIdentity(array $cfg): string {
@@ -73,7 +94,7 @@ function ldapListEnabledUsers(): array {
     $link = ldapConnection();
     $filter = '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=512))';
     $attrs = $cfg['user_attributes'] ?? ['displayName', 'sAMAccountName'];
-    $baseDn = ldapGetBaseDn($cfg);
+    $baseDn = ldapGetBaseDn($cfg, $link);
     $search = @ldap_search($link, $baseDn, $filter, $attrs, 0, 2000, 15);
     if ($search === false) {
         $err = ldap_error($link);
@@ -105,7 +126,7 @@ function ldapChangeUserPassword(string $username, string $newPassword): void {
     }
     $cfg = getConfig()['ldap'];
     $link = ldapConnection();
-    $baseDn = ldapGetBaseDn($cfg);
+    $baseDn = ldapGetBaseDn($cfg, $link);
     $filter = sprintf('(&(objectCategory=person)(objectClass=user)(sAMAccountName=%s))', escapeLdapFilter($username));
     $search = @ldap_search($link, $baseDn, $filter, ['dn']);
     if ($search === false) {
